@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI 팀 단톡방</title>
+<meta name="description" content="대표 AI가 일을 나누고, 담당 AI가 실행하고, 대표 AI가 검토하는 멀티 AI 에이전트 단톡방.">
+<meta name="theme-color" content="#0b0f17">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AI 팀">
+<meta property="og:title" content="AI 팀 단톡방">
+<meta property="og:description" content="대표 AI가 작업을 배분하고, 담당 AI들이 순서대로 일하고, 대표 AI가 검토합니다.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- ============ 사이드바 ============ -->
+  <aside class="sidebar" id="sidebar" aria-label="사이드바">
+    <div class="brand">
+      <div class="brand-logo" aria-hidden="true">👑</div>
+      <div class="brand-text">
+        <strong>AI 팀 단톡방</strong>
+        <span>대표 AI가 일을 나눠요</span>
+      </div>
+      <button class="icon-btn mobile-only" id="sidebarClose" aria-label="사이드바 닫기">✕</button>
+    </div>
+
+    <div class="side-scroll">
+      <section class="side-section">
+        <div class="side-head">
+          <h2>채팅방</h2>
+          <button class="mini-btn" id="newRoomBtn" title="새 방 만들기">+ 새 방</button>
+        </div>
+        <ul class="room-list" id="roomList"></ul>
+      </section>
+
+      <section class="side-section">
+        <div class="side-head">
+          <h2>우리 팀 <span class="count" id="agentCount">6</span></h2>
+          <button class="mini-btn" id="addAgentBtn" title="에이전트 추가">+ 추가</button>
+        </div>
+        <ul class="agent-list" id="agentList"></ul>
+      </section>
+    </div>
+
+    <div class="side-foot">
+      <button class="side-action" id="openSettingsBtn">
+        <span class="side-action-icon">⚙️</span>
+        <span class="side-action-body">
+          <strong>설정</strong>
+          <small id="keyStatus">데모 모드로 실행 중</small>
+        </span>
+        <span class="chev">›</span>
+      </button>
+      <div class="side-note">API 키는 이 브라우저에만 저장돼요.</div>
+    </div>
+  </aside>
+
+  <div class="scrim" id="scrim"></div>
+
+  <!-- ============ 메인 ============ -->
+  <main class="main" id="main">
+    <header class="chat-head">
+      <button class="icon-btn mobile-only" id="menuBtn" aria-label="메뉴 열기">☰</button>
+      <div class="chat-head-main">
+        <div class="chat-title-row">
+          <h1 id="roomTitle">우리 팀 단톡방</h1>
+          <span class="live-dot" id="modeDot" title="데모 모드"></span>
+        </div>
+        <div class="chat-sub">
+          <div class="avatar-stack" id="avatarStack"></div>
+          <span id="roomMeta">AI 6명</span>
+        </div>
+      </div>
+      <div class="chat-head-actions">
+        <button class="icon-btn" id="exportBtn" title="Markdown으로 내보내기" aria-label="내보내기">⤓</button>
+        <button class="icon-btn" id="themeBtn" title="테마 전환" aria-label="테마 전환">◐</button>
+        <button class="icon-btn" id="roomMenuBtn" title="방 메뉴" aria-label="방 메뉴">⋯</button>
+      </div>
+    </header>
+
+    <div class="messages" id="messages" aria-live="polite"></div>
+
+    <div class="composer-wrap">
+      <div class="bridge-row" id="bridgeRow">
+        <button type="button" class="bridge-btn" id="copyThreadBtn" title="최근 대화와 지시사항을 외부 AI에 붙여넣기 좋게 복사">📋 대화 복사</button>
+        <button type="button" class="bridge-btn" id="postExternalBtn" title="외부 AI의 답변을 방에 올리기">⬆️ 외부 AI 답 올리기</button>
+        <div class="bridge-agents" id="bridgeAgents"></div>
+      </div>
+      <div class="quick-chips" id="quickChips"></div>
+      <div class="status-bar" id="statusBar" hidden>
+        <span class="spinner" aria-hidden="true"></span>
+        <span id="statusText">준비 중…</span>
+        <button class="status-cancel" id="cancelBtn" hidden>중단</button>
+      </div>
+      <form class="composer" id="composer" autocomplete="off">
+        <button type="button" class="compose-btn mention-btn" id="mentionBtn" title="@로 에이전트 부르기" aria-label="에이전트 부르기">@</button>
+        <textarea id="input" rows="1" placeholder="무엇이든 물어보세요" aria-label="메시지 입력"></textarea>
+        <button type="submit" class="compose-btn send-btn" id="sendBtn" title="보내기" aria-label="보내기">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M3.4 20.4l17.5-8.4c.8-.4.8-1.6 0-2L3.4 1.6c-.7-.3-1.4.2-1.4.9v5.1c0 .5.4.9.9 1l11.1 1.4-11.1 1.4c-.5.1-.9.5-.9 1v5.1c0 .7.7 1.2 1.4.9z" fill="currentColor"/></svg>
+        </button>
+      </form>
+      <div class="composer-note">Enter 전송 · Shift+Enter 줄바꿈 · <b>@이름</b>으로 직접 호출</div>
+    </div>
+
+    <div class="mention-pop" id="mentionPop" hidden></div>
+  </main>
+</div>
+
+<!-- ============ 에이전트 편집 모달 ============ -->
+<div class="modal-layer" id="agentModal" hidden>
+  <div class="modal sheet" role="dialog" aria-modal="true" aria-labelledby="agentModalTitle">
+    <div class="modal-head">
+      <h3 id="agentModalTitle">에이전트 편집</h3>
+      <button class="icon-btn" data-close="agentModal" aria-label="닫기">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row form-row-split">
+        <label class="field field-emoji">
+          <span>아이콘</span>
+          <input type="text" id="agentEmoji" maxlength="4" inputmode="text" autocomplete="off">
+        </label>
+        <label class="field field-color">
+          <span>색상</span>
+          <input type="color" id="agentColor" value="#7c5cff">
+        </label>
+      </div>
+      <div class="preset-block">
+        <div class="emoji-presets" id="emojiPresets" aria-label="아이콘 빠른 선택"></div>
+        <div class="color-presets" id="colorPresets" aria-label="색상 빠른 선택"></div>
+      </div>
+      <label class="field">
+        <span>이름</span>
+        <input type="text" id="agentName" maxlength="20" placeholder="예: 3D 모델링">
+      </label>
+      <label class="field">
+        <span>주특기 한 줄</span>
+        <input type="text" id="agentRole" maxlength="80" placeholder="예: STL 설계·치수·출력 설정 전문">
+      </label>
+      <label class="field">
+        <span>상세 지침 <small class="hint">(이 에이전트에게 주는 시스템 프롬프트)</small></span>
+        <textarea id="agentInstructions" rows="5" placeholder="어떤 식으로 일할지 자세히 적어 주세요."></textarea>
+      </label>
+
+      <div class="field">
+        <span>참여 방식</span>
+        <div class="seg" role="radiogroup" aria-label="참여 방식">
+          <label class="seg-item"><input type="radio" name="agentType" value="api" checked><span>API 연결</span></label>
+          <label class="seg-item"><input type="radio" name="agentType" value="external"><span>외부 AI (링크·복붙)</span></label>
+        </div>
+        <p class="field-note" id="agentTypeHint">API 키로 이 방에서 자동으로 답합니다.</p>
+      </div>
+      <div id="apiModelBox">
+      <div class="field">
+        <span>모델</span>
+        <div class="seg" role="radiogroup" aria-label="모델 선택">
+          <label class="seg-item"><input type="radio" name="modelMode" value="shared" checked><span>공용 모델</span></label>
+          <label class="seg-item"><input type="radio" name="modelMode" value="custom"><span>전용 모델</span></label>
+        </div>
+      </div>
+      <div class="custom-model" id="customModel" hidden>
+        <div class="form-row form-row-split">
+          <label class="field">
+            <span>프로바이더</span>
+            <select id="agentProvider">
+              <option value="gemini">Google Gemini</option>
+              <option value="openai">OpenAI (GPT)</option>
+              <option value="anthropic">Anthropic (Claude)</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>모델</span>
+            <input type="text" id="agentModel" list="modelSuggestions" placeholder="gemini-2.5-flash">
+          </label>
+        </div>
+        <label class="field">
+          <span>이 에이전트 전용 API 키 <small class="hint">(비우면 설정의 공용 키 사용)</small></span>
+          <input type="password" id="agentApiKey" autocomplete="off" placeholder="선택 입력">
+        </label>
+      </div>
+      </div>
+
+      <div class="external-box" id="externalBox" hidden>
+        <label class="field">
+          <span>외부 AI 링크 <small class="hint">(선택, 예: 대화 링크)</small></span>
+          <input type="text" id="agentLink" placeholder="https://...">
+        </label>
+        <p class="modal-note">
+          외부 AI는 자동 호출 대신 <b>[대화 복사]</b>로 내용을 복사해 붙여넣고,
+          받은 답변을 <b>[외부 AI 답 올리기]</b>로 이 방에 올리는 방식으로 참여합니다.
+        </p>
+      </div>
+
+      <label class="switch-row" id="activeRow">
+        <span>
+          <strong>활성</strong>
+          <small>꺼 두면 대표 AI가 이 에이전트를 지목하지 않아요.</small>
+        </span>
+        <input type="checkbox" id="agentActive" checked>
+        <span class="switch"></span>
+      </label>
+      <p class="modal-warning" id="agentWarning" hidden></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn danger-ghost" id="deleteAgentBtn">삭제</button>
+      <div class="spacer"></div>
+      <button class="btn ghost" data-close="agentModal">취소</button>
+      <button class="btn primary" id="saveAgentBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 설정 모달 ============ -->
+<div class="modal-layer" id="settingsModal" hidden>
+  <div class="modal sheet" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="modal-head">
+      <h3 id="settingsTitle">설정</h3>
+      <button class="icon-btn" data-close="settingsModal" aria-label="닫기">✕</button>
+    </div>
+    <div class="modal-body">
+      <label class="switch-row">
+        <span>
+          <strong>데모 모드</strong>
+          <small>API 키 없이 대표 AI 배분 → 담당 실행 → 검토 흐름을 체험합니다.</small>
+        </span>
+        <input type="checkbox" id="demoToggle" checked>
+        <span class="switch"></span>
+      </label>
+
+      <div class="section-label">공용 모델 <small>모든 에이전트가 기본으로 쓰는 모델</small></div>
+      <div class="form-row form-row-split">
+        <label class="field">
+          <span>프로바이더</span>
+          <select id="sharedProvider">
+            <option value="gemini">Google Gemini (무료 티어)</option>
+            <option value="openai">OpenAI (GPT)</option>
+            <option value="anthropic">Anthropic (Claude)</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>모델</span>
+          <input type="text" id="sharedModel" list="modelSuggestions" placeholder="gemini-2.5-flash">
+        </label>
+      </div>
+
+      <div class="section-label">API 키 <small>이 브라우저(localStorage)에만 저장됩니다</small></div>
+      <label class="field key-field">
+        <span>Google Gemini <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">무료 키 발급 ↗</a></span>
+        <input type="password" id="keyGemini" autocomplete="off" placeholder="AIza...">
+      </label>
+      <label class="field key-field">
+        <span>OpenAI (선택)</span>
+        <input type="password" id="keyOpenai" autocomplete="off" placeholder="sk-...">
+      </label>
+      <label class="field key-field">
+        <span>Anthropic (선택)</span>
+        <input type="password" id="keyAnthropic" autocomplete="off" placeholder="sk-ant-...">
+      </label>
+      <div class="key-test-row">
+        <button class="btn ghost small" id="testKeyBtn">키 연결 테스트</button>
+        <span class="key-test-result" id="keyTestResult"></span>
+      </div>
+
+      <div class="section-label">동기화 (선택) <small>비우면 이 브라우저에만 저장</small></div>
+      <div class="form-row form-row-split">
+        <label class="field">
+          <span>동기화 서버 URL</span>
+          <input type="text" id="syncUrl" placeholder="https://ai-team-sync.workers.dev">
+        </label>
+        <label class="field">
+          <span>방 키</span>
+          <input type="text" id="syncRoomKey" placeholder="예: bubble-team-7f3a">
+        </label>
+      </div>
+      <div class="key-test-row">
+        <button class="btn ghost small" id="syncTestBtn">동기화 테스트</button>
+        <button class="btn ghost small" id="syncNowBtn">지금 동기화</button>
+        <span class="key-test-result" id="syncTestResult"></span>
+      </div>
+      <p class="modal-note">
+        Cloudflare Workers + D1 같은 서버를 붙이면 기기 간 대화가 이어집니다.
+        서버가 없으면 입력하지 마세요. 메시지는 <code>{id, author_type, author_name, role, text, tag, ts, created_at}</code> 구조로 오갑니다.
+      </p>
+
+      <div class="section-label">대화</div>
+      <label class="switch-row">
+        <span><strong>Enter로 전송</strong><small>끄면 Enter는 줄바꿈, Ctrl+Enter로 전송합니다.</small></span>
+        <input type="checkbox" id="enterToggle" checked>
+        <span class="switch"></span>
+      </label>
+
+      <div class="section-label danger">데이터</div>
+      <div class="data-row">
+        <span id="storageInfo">저장된 방 0개</span>
+        <button class="btn ghost small" id="resetDataBtn">모든 데이터 초기화</button>
+      </div>
+      <p class="modal-note">
+        이 앱은 정적 웹앱이라 대화·설정이 서버로 전송되지 않습니다(입력한 AI 프로바이더 API 제외).
+        GitHub Pages에 올리면 누구나 접속할 수 있으니 키는 각자 브라우저에서 입력하세요.
+      </p>
+    </div>
+    <div class="modal-foot">
+      <div class="spacer"></div>
+      <button class="btn primary" id="saveSettingsBtn">완료</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 외부 AI 브리지 모달 ============ -->
+<div class="modal-layer" id="bridgeModal" hidden>
+  <div class="modal sheet" role="dialog" aria-modal="true" aria-labelledby="bridgeTitle">
+    <div class="modal-head">
+      <h3 id="bridgeTitle">외부 AI 연결</h3>
+      <button class="icon-btn" data-close="bridgeModal" aria-label="닫기">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-note">
+        셋톡처럼, API 없이 쓰는 AI도 대화에 참여시킬 수 있어요. 최근 대화와 역할 지시를 복사해
+        외부 AI에 붙여넣고, 받은 답변을 아래에 붙여 올리면 됩니다.
+      </p>
+      <label class="field">
+        <span>대상 AI</span>
+        <select id="bridgeTarget"></select>
+      </label>
+      <label class="field">
+        <span>전달할 내용 <small class="hint">복사해서 외부 AI에 붙여넣으세요</small></span>
+        <textarea id="bridgePrompt" rows="7" readonly></textarea>
+      </label>
+      <div class="row-actions">
+        <button class="btn ghost small" id="bridgeCopyBtn">📋 복사</button>
+        <button class="btn ghost small" id="bridgeOpenBtn" hidden>↗ 링크 열기</button>
+        <span class="key-test-result" id="bridgeCopyHint"></span>
+      </div>
+      <div class="section-label">답변 올리기</div>
+      <label class="field">
+        <span>외부 AI가 준 답변</span>
+        <textarea id="bridgeAnswer" rows="6" placeholder="외부 AI의 답변을 그대로 붙여넣으세요."></textarea>
+      </label>
+    </div>
+    <div class="modal-foot">
+      <div class="spacer"></div>
+      <button class="btn ghost" data-close="bridgeModal">취소</button>
+      <button class="btn primary" id="postAnswerBtn">이 방에 올리기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 방 모달 ============ -->
+<div class="modal-layer" id="roomModal" hidden>
+  <div class="modal sheet narrow" role="dialog" aria-modal="true" aria-labelledby="roomModalTitle">
+    <div class="modal-head">
+      <h3 id="roomModalTitle">새 채팅방</h3>
+      <button class="icon-btn" data-close="roomModal" aria-label="닫기">✕</button>
+    </div>
+    <div class="modal-body">
+      <label class="field">
+        <span>방 이름</span>
+        <input type="text" id="roomNameInput" maxlength="40" placeholder="예: 부여 여행 준비">
+      </label>
+    </div>
+    <div class="modal-foot">
+      <div class="spacer"></div>
+      <button class="btn ghost" data-close="roomModal">취소</button>
+      <button class="btn primary" id="saveRoomBtn">만들기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 확인 모달 ============ -->
+<div class="modal-layer" id="confirmModal" hidden>
+  <div class="modal sheet narrow" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="modal-head">
+      <h3 id="confirmTitle">확인</h3>
+    </div>
+    <div class="modal-body">
+      <p id="confirmText" class="confirm-text"></p>
+    </div>
+    <div class="modal-foot">
+      <div class="spacer"></div>
+      <button class="btn ghost" id="confirmNo">취소</button>
+      <button class="btn danger" id="confirmYes">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- 방 메뉴 -->
+<div class="menu-pop" id="roomMenu" hidden>
+  <button data-menu="rename">✏️ 이름 변경</button>
+  <button data-menu="export">⤓ Markdown 내보내기</button>
+  <button data-menu="clear">🧹 대화 비우기</button>
+  <button data-menu="delete" class="danger">🗑 방 삭제</button>
+</div>
+
+<datalist id="modelSuggestions">
+  <option value="gemini-2.5-flash"></option>
+  <option value="gemini-2.5-pro"></option>
+  <option value="gemini-2.0-flash"></option>
+  <option value="gpt-4o-mini"></option>
+  <option value="gpt-4o"></option>
+  <option value="gpt-4.1-mini"></option>
+  <option value="claude-sonnet-4-5"></option>
+  <option value="claude-haiku-4-5"></option>
+  <option value="claude-3-5-haiku-latest"></option>
+</datalist>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script src="js/util.js"></script>
+<script src="js/markdown.js"></script>
+<script src="js/store.js"></script>
+<script src="js/llm.js"></script>
+<script src="js/orchestrator.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
